@@ -1,1 +1,46 @@
 
+name: Deploy to EC2 (rsync) 
+on: 
+push: 
+branches: - main 
+jobs: 
+deploy: 
+    runs-on: ubuntu-latest 
+    steps: 
+      - name: Checkout code 
+        uses: actions/checkout@v4 
+ 
+      - name: Install rsync 
+        run: sudo apt-get update && sudo apt-get install -y rsync 
+ 
+      - name: Deploy to EC2 via rsync over SSH 
+        env: 
+          SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY }} 
+          REMOTE_USER: ${{ secrets.EC2_USER }} 
+          REMOTE_HOST: ${{ secrets.EC2_HOST }} 
+          REMOTE_PORT: ${{ secrets.EC2_PORT }} 
+          TARGET_DIR: ${{ secrets.TARGET_DIR || '/usr/share/nginx/html' }} 
+        run: | 
+          # prepare SSH key 
+          mkdir -p ~/.ssh 
+          echo "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key 
+          chmod 600 ~/.ssh/deploy_key 
+ 
+          # add host to known_hosts (avoid interactive prompt) 
+          if [ -z "$REMOTE_PORT" ]; then 
+            ssh-keyscan -H "$REMOTE_HOST" >> ~/.ssh/known_hosts 
+            RSYNC_SSH="ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no" 
+          else 
+            ssh-keyscan -p "$REMOTE_PORT" -H "$REMOTE_HOST" >> ~/.ssh/known_hosts 
+            RSYNC_SSH="ssh -p $REMOTE_PORT -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no" 
+          fi 
+# sync repo to remote (exclude git and workflow folder) 
+rsync -avz --delete --exclude '.git' --exclude '.github' -e "$RSYNC_SSH" ./ 
+${REMOTE_USER}@${REMOTE_HOST}:${TARGET_DIR} 
+# restart nginx (if needed) 
+ssh -o StrictHostKeyChecking=no -i ~/.ssh/deploy_key ${REMOTE_USER}@${REMOTE_HOST} "sudo 
+systemctl restart nginx || true" 
+7. Commit and push: 
+git add index.html 
+git commit -m "first commit" 
+git push origin main 
