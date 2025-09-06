@@ -1,1 +1,18 @@
 
+<!doctype html> 
+<html lang="en"> 
+<head> 
+<meta charset="utf-8"/> 
+<meta name="viewport" content="width=device-width,initial-scale=1"/> 
+<title>Hello Cloud!</title> 
+</head> 
+<body style="font-family:system-ui,Arial,Helvetica,sans-serif;display:flex;align-items:center;justify
+content:center;height:100vh;"> 
+<div style="text-align:center;"> 
+<h1>Hello Cloud!</h1> 
+<p>This static site is deployed to an Amazon Linux EC2 instance via GitHub Actions.</p> 
+<small>Last updated: <span id="ts"></span></small> 
+</div> 
+<script>document.getElementById('ts').textContent = new Date().toLocaleString();</script> 
+</body> 
+</html> 
